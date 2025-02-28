@@ -11,17 +11,12 @@ read choiceForServer
 
 # Installing Latest Java JDK and playit
 
-JDK_URL=$(wget -qO- "https://api.adoptium.net/v3/assets/latest/17/hotspot" | grep -oP '(?<=browser_download_url":")[^"]*linux-x64.tar.gz')
+JDK_URL="https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb"
 
-if [ -z "$JDK_URL" ]; then
-  echo "Failed to fetch the latest JDK URL. Exiting..."
-  exit 1
-fi
-
-wget -q "$JDK_URL" -O bin/java.tar.xz
+wget -q "$JDK_URL" -O bin/java.deb
 cd $MAIN_DIR/bin
-echo "> Extracting Java JDK to the bin/ folder. [THIS MAY TAKE SOME TIME]"
-tar -xf java.tar.xz && mv jdk-* java_bins
+echo "> Installing Java JDK 21..."
+sudo dpkg -i java.deb
 
 cd $MAIN_DIR
 # If choice is 0 or null then run this command
