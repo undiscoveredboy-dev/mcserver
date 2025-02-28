@@ -1,43 +1,73 @@
 #!/bin/bash
-mkdir bin
-chmod +x *
 export MAIN_DIR=$PWD
-echo "Which Server do you want to install?"
-echo "Type [1] Java Server"
-echo "Type [2] Bedrock Server"
+echo "> Starting the server up. Please wait..."                                                                                 
+echo "> Installing Dependencies..."
 
-choiceForServer=1
-read choiceForServer
+sudo apt install -y -qq screen wget  
 
-# Installing Java 16 JDK and playit
-#chaged jdk 16 to jdk 21 for higher version support, uncomment to lower versions for support
+echo "> Dependencies Installed!"
 
-sudo apt install openjdk-21-jdk
+# Download and set up JDK 21
+mkdir -p $MAIN_DIR/bin
+wget -q "https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.tar.gz" -O $MAIN_DIR/bin/java.tar.gz
+cd $MAIN_DIR/bin
+echo "> Extracting Java JDK 21 to the bin/ folder. [THIS MAY TAKE SOME TIME]"
+tar -xf java.tar.gz && mv jdk-21 java_bins
+
+# Set Java 21 as default
+export JAVA_HOME=$MAIN_DIR/bin/java_bins
+export PATH=$JAVA_HOME/bin:$PATH
 
 cd $MAIN_DIR
-# If choice is 0 or null then run this command
-if [[ -z $choiceForServer ]]; then
+echo "> Checking Server Type..."
+if [ -f $MAIN_DIR/server/bedrock_server ]; then
 
-  echo "> Invaild Respond. Please try again."
-  ./install
+echo "> Bedrock Server Detected! Starting Server up..."
 
-# If choice is 1 then run this command
-elif [[ $choiceForServer == 1 ]]; then
-	
-	echo "> Running Java Installation..."
-  ./installJava
+elif [ ! -f $MAIN_DIR/server/eula.txt ]; then
 
-# If choice is 1 then run this command
-elif [[ $choiceForServer == 2 ]]; then
-	
-	echo "> Running Bedrock Installation..."
-  ./installBedrock
+cd $MAIN_DIR/server
+echo "> EULA doesn't exist! Creating one!"
+echo "eula=true" > eula.txt
+echo "> EULA Completed! Restarting Server"
+cd $MAIN_DIR
+screen -S server -d -m ./startJavaServer
+clear
+echo "> Your server is performing a second restart to fix the EULA file."
+killall screen
+./startserver
+exit
+elif [ -f $MAIN_DIR/server/eula.txt ]; then
+echo "> EULA Detected! Starting Server up..."
 
 else
-	echo "> Invaild Respond. Please try again."
-	./install
+echo "> Your server isn't set up properly. Force uninstall..."
+cd $MAIN_DIR
+./uninstall
+echo "> Confirmed Uninstallation! Restarting Installation..."
+./install
 fi
-echo "> Installing AFK(Away From Keyboard) Script "
-python3 -m pip install bpytop
-echo ""
 
+# Prevent multiple instances of the same app from running
+killall screen
+
+screen -S server -d -m ./startJavaServer # Starting Java Server
+screen -S server -d -m ./startBedrockServer # Starting Bedrock Server
+screen -S afk -d -m ./startAfk # Starting AFK app aka bpytop.
+screen -S playit -d -m ./startPlayIt # Starting Playit
+
+cd $MAIN_DIR/server
+screen -S server -d -m ./bin/php7/bin/php ./PocketMine-MP.phar --no-wizard --disable-ansi # Starting PocketmineMP
+screen -S server -d -m java --add-opens java.base/java.nio=io.netty.common --add-exports java.base/jdk.internal.misc=io.netty.common -p modules -m gomint.server/io.gomint.server.Bootstrap # Starting GoMint
+cd $MAIN_DIR
+
+echo "-- Your Server is now ONLINE! --"
+echo
+echo "Type [screen -ls] to check the Running Processes"
+echo "Type [screen -r server] to enter the Server Console"
+echo "Type [screen -r playit] to view your Server IP"
+echo ""
+echo "> To stop your server, type './stopserver' to stop"
+
+echo -e '\nChecking if the server has launched properly'
+./.checkserver 2> crash.log
