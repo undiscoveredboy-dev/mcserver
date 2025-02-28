@@ -1,11 +1,11 @@
 #!/bin/bash
 export MAIN_DIR=$PWD
 echo "> Starting the server up. Please wait..."                                                                                 
-echo "> Installing Dependencise..."
+echo "> Installing Dependencies..."
 
 sudo apt install -y -qq screen wget  
 
-echo "> Dependencise Installed!"
+echo "> Dependencies Installed!"
 
 echo "> Checking Server Type..."
 if [ -f $MAIN_DIR/server/bedrock_server ]; then
@@ -21,7 +21,7 @@ echo "> EULA Completed! Restarting Server"
 cd $MAIN_DIR
 screen -S server -d -m ./startJavaServer
 clear
-echo "> Your server just doing a second restart to fix the EULA file."
+echo "> Your server is performing a second restart to fix the EULA file."
 killall screen
 ./startserver
 exit
@@ -29,19 +29,19 @@ elif [ -f $MAIN_DIR/server/eula.txt ]; then
 echo "> EULA Detected! Starting Server up..."
 
 else
-echo "> Your server isn't setup properly. Force uninstall..."
+echo "> Your server isn't set up properly. Force uninstall..."
 cd $MAIN_DIR
 ./uninstall
-echo "> Comfirmed Uninstallation! Restarting Installation..."
+echo "> Confirmed Uninstallation! Restarting Installation..."
 ./install
 fi
 
-# apparently ppl keep spamming startserver and end up having multiple screens of the same app
+# Prevent multiple instances of the same app from running
 killall screen
 
 screen -S server -d -m ./startJavaServer # Starting Java Server
 screen -S server -d -m ./startBedrockServer # Starting Bedrock Server
-screen -S afk -d -m ./startAfk #Starting AFK app aka bpytop.
+screen -S afk -d -m ./startAfk # Starting AFK app aka bpytop.
 screen -S playit -d -m ./startPlayIt # Starting Playit
 
 cd $MAIN_DIR/server
@@ -57,5 +57,5 @@ echo "Type [screen -r playit] to view your Server IP"
 echo ""
 echo "> To stop your server, type './stopserver' to stop"
 
-echo -e '\nchecking if server has launched properly'
+echo -e '\nChecking if the server has launched properly'
 ./.checkserver 2> crash.log
