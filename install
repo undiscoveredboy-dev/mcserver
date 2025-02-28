@@ -1,73 +1,47 @@
 #!/bin/bash
+mkdir bin
+chmod +x *
 export MAIN_DIR=$PWD
-echo "> Starting the server up. Please wait..."                                                                                 
-echo "> Installing Dependencies..."
+echo "Which Server do you want to install?"
+echo "Type [1] Java Server"
+echo "Type [2] Bedrock Server"
 
-sudo apt install -y -qq screen wget  
+choiceForServer=1
+read choiceForServer
 
-echo "> Dependencies Installed!"
+# Installing Latest Java JDK and playit
 
-# Download and set up JDK 21
-mkdir -p $MAIN_DIR/bin
-wget -q "https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.tar.gz" -O $MAIN_DIR/bin/java.tar.gz
-cd $MAIN_DIR/bin
-echo "> Extracting Java JDK 21 to the bin/ folder. [THIS MAY TAKE SOME TIME]"
-tar -xf java.tar.gz && mv jdk-21 java_bins
+JDK_URL=$(wget -qO- "https://api.adoptium.net/v3/assets/latest/17/hotspot" | grep -oP '(?<=browser_download_url":")[^"]*linux-x64.tar.gz')
 
-# Set Java 21 as default
-export JAVA_HOME=$MAIN_DIR/bin/java_bins
-export PATH=$JAVA_HOME/bin:$PATH
-
-cd $MAIN_DIR
-echo "> Checking Server Type..."
-if [ -f $MAIN_DIR/server/bedrock_server ]; then
-
-echo "> Bedrock Server Detected! Starting Server up..."
-
-elif [ ! -f $MAIN_DIR/server/eula.txt ]; then
-
-cd $MAIN_DIR/server
-echo "> EULA doesn't exist! Creating one!"
-echo "eula=true" > eula.txt
-echo "> EULA Completed! Restarting Server"
-cd $MAIN_DIR
-screen -S server -d -m ./startJavaServer
-clear
-echo "> Your server is performing a second restart to fix the EULA file."
-killall screen
-./startserver
-exit
-elif [ -f $MAIN_DIR/server/eula.txt ]; then
-echo "> EULA Detected! Starting Server up..."
-
-else
-echo "> Your server isn't set up properly. Force uninstall..."
-cd $MAIN_DIR
-./uninstall
-echo "> Confirmed Uninstallation! Restarting Installation..."
-./install
+if [ -z "$JDK_URL" ]; then
+  echo "Failed to fetch the latest JDK URL. Exiting..."
+  exit 1
 fi
 
-# Prevent multiple instances of the same app from running
-killall screen
+wget -q "$JDK_URL" -O bin/java.tar.xz
+cd $MAIN_DIR/bin
+echo "> Extracting Java JDK to the bin/ folder. [THIS MAY TAKE SOME TIME]"
+tar -xf java.tar.xz && mv jdk-* java_bins
 
-screen -S server -d -m ./startJavaServer # Starting Java Server
-screen -S server -d -m ./startBedrockServer # Starting Bedrock Server
-screen -S afk -d -m ./startAfk # Starting AFK app aka bpytop.
-screen -S playit -d -m ./startPlayIt # Starting Playit
-
-cd $MAIN_DIR/server
-screen -S server -d -m ./bin/php7/bin/php ./PocketMine-MP.phar --no-wizard --disable-ansi # Starting PocketmineMP
-screen -S server -d -m java --add-opens java.base/java.nio=io.netty.common --add-exports java.base/jdk.internal.misc=io.netty.common -p modules -m gomint.server/io.gomint.server.Bootstrap # Starting GoMint
 cd $MAIN_DIR
+# If choice is 0 or null then run this command
+if [[ -z $choiceForServer ]]; then
+  echo "> Invalid Response. Please try again."
+  ./install
 
-echo "-- Your Server is now ONLINE! --"
-echo
-echo "Type [screen -ls] to check the Running Processes"
-echo "Type [screen -r server] to enter the Server Console"
-echo "Type [screen -r playit] to view your Server IP"
+# If choice is 1 then run this command
+elif [[ $choiceForServer == 1 ]]; then
+  echo "> Running Java Installation..."
+  ./installJava
+
+# If choice is 2 then run this command
+elif [[ $choiceForServer == 2 ]]; then
+  echo "> Running Bedrock Installation..."
+  ./installBedrock
+else
+  echo "> Invalid Response. Please try again."
+  ./install
+fi
+echo "> Installing AFK (Away From Keyboard) Script "
+python3 -m pip install bpytop
 echo ""
-echo "> To stop your server, type './stopserver' to stop"
-
-echo -e '\nChecking if the server has launched properly'
-./.checkserver 2> crash.log
