@@ -1,30 +1,36 @@
-echo -e '\n> Enter Minecraft version (leave blank for latest stable version): '
+#!/bin/bash
+sudo apt update -qq  
+sudo apt install -y -qq curl jq unzip dos2unix wget
+
+cd ..
+mkdir -p server
+cd server
+
+echo -e 'Please check if your mc version is available: https://meta.fabricmc.net/v2/versions/game'
+echo -e '\n> Enter Minecraft version: '
 read MC_VERSION
 
-# Determine the Minecraft version to use
 if [ -z "$MC_VERSION" ]; then
-  MC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/game | jq -r '.[] | select(.stable == true) | .version' | head -n1)
-  echo -e "No version entered. Using latest stable version: $MC_VERSION"
-else
-  echo -e "Using specified Minecraft version: $MC_VERSION"
+  $MC_VERSION=latest
+  echo -e 'continuing with the latest version'
 fi
 
-# Determine the latest Fabric installer version
-FABRIC_INSTALLER_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/installer | jq -r '.[0].version')
+# -- EDIT HERE | DO NOT EDIT ABOVE -- #
+SERVER_JARFILE=server.jar # LEAVE THIS PART ALONE
+FABRIC_VERSION=latest # FABRIC_VERSION: https://meta.fabricmc.net/v2/versions/installer
+# -- EDIT HERE | DO NOT EDIT BELOW -- #
 
-# Download the Fabric installer
-wget -O fabric-installer.jar "https://maven.fabricmc.net/net/fabricmc/fabric-installer/$FABRIC_INSTALLER_VERSION/fabric-installer-$FABRIC_INSTALLER_VERSION.jar"
 
-# Run the Fabric installer to set up the server
-java -jar fabric-installer.jar server -mcversion "$MC_VERSION" -downloadMinecraft
+# Enable snapshots
+if [ -z "$MC_VERSION" ] || [ "$MC_VERSION" == "latest" ]; then
+  MC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/game | jq -r '.[] | select(.stable== true )|.version' | head -n1)
+elif [ "$MC_VERSION" == "snapshot" ]; then
+  MC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/game | jq -r '.[] | select(.stable== false )|.version' | head -n1)
+fi
 
-# Automatically accept the Minecraft EULA
-echo "eula=true" > eula.txt
-
-# Create a script to start the server
-echo -e "#!/bin/bash\njava -Xmx2G -Xms1G -jar fabric-server-launch.jar nogui" > start.sh
-chmod +x start.sh
-
-# Confirm completion
-echo -e "Fabric server installation complete for Minecraft version $MC_VERSION"
-echo -e "To start the server, run ./start.sh in the ~/minecraft-server directory."
+if [ -z "$FABRIC_VERSION" ] || [ "$FABRIC_VERSION" == "latest" ]; then
+  FABRIC_VERSION=$(curl -sSL https://meta.fabricmc.net/v2/versions/installer | jq -r '.[0].version')
+fi
+wget -O fabric-installer.jar https://maven.fabricmc.net/net/fabricmc/fabric-installer/$FABRIC_VERSION/fabric-installer-$FABRIC_VERSION.jar
+java -jar fabric-installer.jar server -mcversion $MC_VERSION -downloadMinecraft
+echo -e "Install Complete"
