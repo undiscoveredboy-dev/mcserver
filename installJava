@@ -1,14 +1,18 @@
 #!/bin/bash
-
 set -e
+
 export THIS_DIR="$PWD"
 
 # -----------------------------
-# Ask Minecraft version
+# Ask Minecraft version (ONCE)
 # -----------------------------
 echo ""
-echo "Enter Minecraft version (example: 1.14.2, 1.16.5, 1.18.2, 1.20.4):"
+echo "Enter Minecraft version (example: 1.14.2, 1.16.5, 1.18.2, 1.20.4 or latest)"
 read -rp "> " MC_VERSION
+
+# Default
+MC_VERSION="${MC_VERSION:-latest}"
+export MC_VERSION
 
 # -----------------------------
 # Decide Java version
@@ -22,27 +26,35 @@ case "$MC_VERSION" in
   1.17*)
     JAVA_PKG="temurin-16-jdk"
     ;;
-  1.18*|1.19*|1.20.[0-4])
+  1.18*|1.19*)
     JAVA_PKG="temurin-17-jdk"
     ;;
-  *)
+  1.20*)
     JAVA_PKG="temurin-21-jdk"
+    ;;
+  latest)
+    JAVA_PKG="temurin-21-jdk"
+    ;;
+  *)
+    JAVA_PKG="temurin-17-jdk"
     ;;
 esac
 
-echo "> Minecraft $MC_VERSION detected"
-echo "> Installing Java: $JAVA_PKG"
+echo "> Minecraft version: $MC_VERSION"
+echo "> Installing Java package: $JAVA_PKG"
 
 # -----------------------------
 # Dependencies (UNCHANGED)
 # -----------------------------
 sudo apt update -y
-sudo apt install -y screen neofetch curl wget apt-transport-https ca-certificates gnupg
+sudo apt install -y \
+  screen neofetch curl wget jq \
+  apt-transport-https ca-certificates gnupg lsb-release
 
 # -----------------------------
-# Adoptium repo
+# Adoptium (Temurin) repo
 # -----------------------------
-if ! grep -q adoptium /etc/apt/sources.list.d/adoptium.list 2>/dev/null; then
+if [[ ! -f /etc/apt/sources.list.d/adoptium.list ]]; then
   wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public \
     | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg
 
@@ -53,7 +65,7 @@ fi
 sudo apt update -y
 sudo apt install -y "$JAVA_PKG"
 
-echo "> Java installed:"
+echo "> Java installed successfully"
 java -version
 
 # -----------------------------
@@ -62,7 +74,7 @@ java -version
 mkdir -p server
 
 # -----------------------------
-# Server installer menu (UNCHANGED)
+# Server installer menu
 # -----------------------------
 install_server () {
   choice="$1"
@@ -80,7 +92,7 @@ install_server () {
     *)
       echo "> Invalid response"
       cd "$THIS_DIR"
-      ./installJava
+      exec ./installJava
       ;;
   esac
 }
@@ -112,7 +124,7 @@ sudo apt install -y playit
 echo "> Playit.gg installed"
 
 # -----------------------------
-# Start prompt (UNCHANGED)
+# Start prompt
 # -----------------------------
 echo ""
 echo "Start server now?"
