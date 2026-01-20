@@ -1,42 +1,55 @@
 #!/bin/bash
-mkdir bin
+
+set -e
+
+mkdir -p bin
 chmod +x *
-export MAIN_DIR=$PWD
+
+export MAIN_DIR="$PWD"
+
 echo "Which Server do you want to install?"
 echo "Type [1] Java Server"
 echo "Type [2] Bedrock Server"
+read -r choiceForServer
 
-choiceForServer=1
-read choiceForServer
-
-# Installing Latest Java JDK and playit
-
+# -----------------------------
+# Install Oracle JDK 21
+# -----------------------------
 JDK_URL="https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb"
 
+echo "> Downloading Java JDK 21..."
 wget -q "$JDK_URL" -O bin/java.deb
-cd $MAIN_DIR/bin
-echo "> Installing Java JDK 21..."
-sudo dpkg -i java.deb
 
-cd $MAIN_DIR
-# If choice is 0 or null then run this command
-if [[ -z $choiceForServer ]]; then
-  echo "> Invalid Response. Please try again."
+cd "$MAIN_DIR/bin"
+echo "> Installing Java JDK 21..."
+sudo dpkg -i java.deb || sudo apt -f install -y
+
+cd "$MAIN_DIR"
+
+# -----------------------------
+# Server choice
+# -----------------------------
+if [[ -z "$choiceForServer" ]]; then
+  echo "> Invalid response"
   ./install
 
-# If choice is 1 then run this command
-elif [[ $choiceForServer == 1 ]]; then
-  echo "> Running Java Installation..."
+elif [[ "$choiceForServer" == "1" ]]; then
+  echo "> Running Java installation..."
   ./installJava
 
-# If choice is 2 then run this command
-elif [[ $choiceForServer == 2 ]]; then
-  echo "> Running Bedrock Installation..."
+elif [[ "$choiceForServer" == "2" ]]; then
+  echo "> Running Bedrock installation..."
   ./installBedrock
+
 else
-  echo "> Invalid Response. Please try again."
+  echo "> Invalid response"
   ./install
 fi
-echo "> Installing AFK (Away From Keyboard) Script "
-python3 -m pip install bpytop
-echo ""
+
+# -----------------------------
+# AFK / Monitor tool
+# -----------------------------
+echo "> Installing AFK monitor..."
+python3 -m pip install --user bpytop
+
+echo "> Install finished."
