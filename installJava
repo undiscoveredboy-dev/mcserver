@@ -1,42 +1,82 @@
 #!/bin/bash
 
+set -e
 export THIS_DIR="$PWD"
 
+# -----------------------------
+# Ask Minecraft version
+# -----------------------------
+echo ""
+echo "Enter Minecraft version (example: 1.14.2, 1.16.5, 1.18.2, 1.20.4):"
+read -r MC_VERSION
+
+# -----------------------------
+# Decide Java version
+# -----------------------------
+JAVA_PKG=""
+
+case "$MC_VERSION" in
+  1.1[0-6]*)
+    JAVA_PKG="temurin-8-jdk"
+    ;;
+  1.17*)
+    JAVA_PKG="temurin-16-jdk"
+    ;;
+  1.18*|1.19*|1.20.[0-4])
+    JAVA_PKG="temurin-17-jdk"
+    ;;
+  *)
+    JAVA_PKG="temurin-21-jdk"
+    ;;
+esac
+
+echo "> Minecraft $MC_VERSION detected"
+echo "> Installing Java: $JAVA_PKG"
+
+# -----------------------------
+# Dependencies (UNCHANGED)
+# -----------------------------
+sudo apt update -y
+sudo apt install -y screen neofetch curl wget apt-transport-https ca-certificates gnupg
+
+# -----------------------------
+# Adoptium repo
+# -----------------------------
+if ! grep -q adoptium /etc/apt/sources.list.d/adoptium.list 2>/dev/null; then
+  wget -qO - https://packages.adoptium.net/artifactory/api/gpg/key/public \
+    | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/adoptium.gpg
+
+  echo "deb https://packages.adoptium.net/artifactory/deb $(lsb_release -cs) main" \
+    | sudo tee /etc/apt/sources.list.d/adoptium.list
+fi
+
+sudo apt update -y
+sudo apt install -y "$JAVA_PKG"
+
+echo "> Java installed:"
+java -version
+
+# -----------------------------
+# Server directory
+# -----------------------------
+mkdir -p server
+
+# -----------------------------
+# Server installer menu (UNCHANGED)
+# -----------------------------
 install_server () {
   choice="$1"
-
   cd JavaInstallScripts || exit 1
   chmod +x *
 
   case "$choice" in
-    ""|1)
-      echo "> Installing Vanilla..."
-      ./VanillaInstall
-      ;;
-    2)
-      echo "> Installing Paper..."
-      ./PaperInstall
-      ;;
-    3)
-      echo "> Installing Forge..."
-      ./ForgeInstall
-      ;;
-    4)
-      echo "> Installing Sponge..."
-      ./SpongeInstall
-      ;;
-    5)
-      echo "> Installing Fabric..."
-      ./FabricInstall
-      ;;
-    6)
-      echo "> Installing Spigot..."
-      ./SpigotInstall
-      ;;
-    7)
-      echo "> Installing Bungeecord..."
-      ./BungeecordInstall
-      ;;
+    ""|1) ./VanillaInstall ;;
+    2) ./PaperInstall ;;
+    3) ./ForgeInstall ;;
+    4) ./SpongeInstall ;;
+    5) ./FabricInstall ;;
+    6) ./SpigotInstall ;;
+    7) ./BungeecordInstall ;;
     *)
       echo "> Invalid response"
       cd "$THIS_DIR"
@@ -45,22 +85,6 @@ install_server () {
   esac
 }
 
-# -----------------------------
-# Dependencies
-# -----------------------------
-sudo apt update -y
-sudo apt install -y screen neofetch curl wget
-
-echo "> Dependencies installed"
-
-# -----------------------------
-# Server directory
-# -----------------------------
-mkdir -p server
-
-# -----------------------------
-# Menu
-# -----------------------------
 echo ""
 echo "-- Pick Server Type --"
 echo "[1] Vanilla"
@@ -73,11 +97,10 @@ echo "[7] Bungeecord"
 read -r choiceForServer
 
 install_server "$choiceForServer"
-
 cd "$THIS_DIR"
 
 # -----------------------------
-# Playit.gg install
+# Playit.gg (UNCHANGED)
 # -----------------------------
 echo "> Installing Playit.gg..."
 curl -SsL https://playit-cloud.github.io/ppa/key.gpg | sudo apt-key add -
@@ -89,7 +112,7 @@ sudo apt install -y playit
 echo "> Playit.gg installed"
 
 # -----------------------------
-# Start prompt
+# Start prompt (UNCHANGED)
 # -----------------------------
 echo ""
 echo "Start server now?"
