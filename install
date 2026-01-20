@@ -13,20 +13,6 @@ echo "Type [2] Bedrock Server"
 read -r choiceForServer
 
 # -----------------------------
-# Install Oracle JDK 21
-# -----------------------------
-JDK_URL="https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb"
-
-echo "> Downloading Java JDK 21..."
-wget -q "$JDK_URL" -O bin/java.deb
-
-cd "$MAIN_DIR/bin"
-echo "> Installing Java JDK 21..."
-sudo dpkg -i java.deb || sudo apt -f install -y
-
-cd "$MAIN_DIR"
-
-# -----------------------------
 # Server choice
 # -----------------------------
 if [[ -z "$choiceForServer" ]]; then
@@ -47,7 +33,7 @@ else
 fi
 
 # -----------------------------
-# AFK / Monitor tool
+# AFK 
 # -----------------------------
 echo "> Installing AFK monitor..."
 python3 -m pip install --user bpytop
