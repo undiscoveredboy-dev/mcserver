@@ -10,7 +10,7 @@ export MAIN_DIR="$PWD"
 echo "Which Server do you want to install?"
 echo "Type [1] Java Server"
 echo "Type [2] Bedrock Server"
-read -r choiceForServer
+read -rp "> " choiceForServer
 
 # -----------------------------
 # Server choice
