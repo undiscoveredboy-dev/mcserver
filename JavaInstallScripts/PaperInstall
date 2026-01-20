@@ -1,7 +1,8 @@
 #!/bin/bash
 # Paper Installation Script
-#
-# Server Files: /mnt/server
+
+set -e
+
 sudo apt update -qq
 sudo apt install -y -qq curl jq > /dev/null
 
@@ -9,47 +10,45 @@ cd ..
 mkdir -p server
 cd server
 
-echo -e "\n> Enter Minecraft version for server: "
-MINECRAFT_VERSION=latest
-read MINECRAFT_VERSION
+# -----------------------------
+# Minecraft version (from installJava)
+# -----------------------------
+MINECRAFT_VERSION="${MC_VERSION:-latest}"
+echo "> Using Minecraft version: $MINECRAFT_VERSION"
 
-# -- EDIT HERE | DO NOT EDIT ABOVE -- #
-BUILD_NUMBER=latest # https://api.papermc.io/v2/projects/paper
-PROJECT=paper # PROJECT: https://api.papermc.io/v2/projects/
-SERVER_JARFILE=server.jar # LEAVE THIS PART ALONE
-# -- EDIT HERE | DO NOT EDIT BELOW -- #
+# -- CONFIG --
+BUILD_NUMBER=latest
+PROJECT=paper
+SERVER_JARFILE=server.jar
+# ------------
 
 if [ -n "${DL_PATH}" ]; then
-    echo -e "Using supplied download URL: ${DL_PATH}"
-    DOWNLOAD_URL=`eval echo $(echo ${DL_PATH} | sed -e 's/{{/${/g' -e 's/}}/}/g')`
+    DOWNLOAD_URL=$(eval echo "${DL_PATH}")
 else
     LATEST_VERSION=$(curl -s "https://api.papermc.io/v2/projects/${PROJECT}" | jq -r '.versions[-1]')
-    if [ "$MINECRAFT_VERSION" == "latest" ]; then
-        MINECRAFT_VERSION=${LATEST_VERSION}
-        echo -e "Using latest available version: ${MINECRAFT_VERSION}"
+
+    if [ "$MINECRAFT_VERSION" = "latest" ]; then
+        MINECRAFT_VERSION="$LATEST_VERSION"
+        echo "> Resolved latest version: $MINECRAFT_VERSION"
     fi
-    
-    LATEST_BUILD=$(curl -s "https://api.papermc.io/v2/projects/${PROJECT}/versions/${MINECRAFT_VERSION}/builds" | jq -r '.builds | map(select(.channel == "default") | .build) | .[-1]')
-    
-    if [ "$BUILD_NUMBER" == "latest" ]; then
-        BUILD_NUMBER=${LATEST_BUILD}
-        echo -e "Using latest stable build: ${BUILD_NUMBER}"
-    fi
-    
-    JAR_NAME=${PROJECT}-${MINECRAFT_VERSION}-${BUILD_NUMBER}.jar
+
+    LATEST_BUILD=$(curl -s \
+      "https://api.papermc.io/v2/projects/${PROJECT}/versions/${MINECRAFT_VERSION}/builds" \
+      | jq -r '.builds | map(select(.channel=="default")|.build) | .[-1]')
+
+    [ "$BUILD_NUMBER" = "latest" ] && BUILD_NUMBER="$LATEST_BUILD"
+
+    JAR_NAME="${PROJECT}-${MINECRAFT_VERSION}-${BUILD_NUMBER}.jar"
     DOWNLOAD_URL="https://api.papermc.io/v2/projects/${PROJECT}/versions/${MINECRAFT_VERSION}/builds/${BUILD_NUMBER}/downloads/${JAR_NAME}"
 fi
 
-SERVER_JARFILE=server.jar
-echo -e "Downloading ${SERVER_JARFILE} from ${DOWNLOAD_URL}"
-
-if [ -f ${SERVER_JARFILE} ]; then
-    mv ${SERVER_JARFILE} ${SERVER_JARFILE}.old
-fi
-
-curl -o ${SERVER_JARFILE} ${DOWNLOAD_URL}
+echo "> Downloading server.jar"
+[ -f server.jar ] && mv server.jar server.jar.old
+curl -sSL -o server.jar "$DOWNLOAD_URL"
 
 if [ ! -f server.properties ]; then
-    echo -e "Downloading Minecraft server.properties"
-    curl -o server.properties https://raw.githubusercontent.com/parkervcp/eggs/master/minecraft/java/server.properties
+    curl -sSL -o server.properties \
+      https://raw.githubusercontent.com/parkervcp/eggs/master/minecraft/java/server.properties
 fi
+
+echo "> Paper install complete"
